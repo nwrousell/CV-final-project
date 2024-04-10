@@ -1,0 +1,6 @@
+
+# Documents
+documents/*.aux
+documents/*.log
+documents/*.out
+documents/*.synctex.gz
