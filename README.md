@@ -2,7 +2,8 @@
 
 - [Robust Reading Challenge on Multi-lingual Scene Text Detection and Recognition](https://arxiv.org/pdf/1907.00945.pdf)
 - [OCR datasets](https://github.com/xinke-wang/OCRDatasets)
-- EAST [paper](https://arxiv.org/pdf/1704.03155.pdf) [githhub](https://github.com/argman/EAST) 
+- EAST [paper](https://arxiv.org/pdf/1704.03155.pdf) [githhub](https://github.com/argman/EAST)
+- [Preprocessing images](https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html)
 
 ### General Approach
 1. Image input
