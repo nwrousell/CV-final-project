@@ -95,7 +95,7 @@ Please describe in one paragraph (3--4 sentences) per team member what each of y
 
 \item[Person 2] I have been investigating the Google Translate API and seeing if there any free ways to use it or other alternatives. I've also been figuring out what library/libraries to use for video display with text overlay. It looks like the Python OpenCV library is perfect for this.
 
-\item [Person 3] Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
+\item [Person 3] I have been mainly focusing on finalizing the pipeline for our model; this can be separated into a model that finds the correct location of text in an image (the bounding boxes’ coordinates for each word), one that identifies that script/language of each word, one that uses the Google Translate API to translate the text as desired, and one that displays the output of the API on top of our original bounding boxes. I have found the appropriate dataset that should be used to train these different models within our overall architecture (e.g. the first model can be trained with the MLT-19 dataset). I am now currently working on preprocessing our datasets and implementing the first model (which is a Mask R-CNN).
 
 \end{description}
 
