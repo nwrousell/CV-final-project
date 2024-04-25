@@ -4,6 +4,8 @@
 - [OCR datasets](https://github.com/xinke-wang/OCRDatasets)
 - EAST [paper](https://arxiv.org/pdf/1704.03155.pdf) [githhub](https://github.com/argman/EAST)
 - [Preprocessing images](https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html)
+- [Sequence Modeling with CTC](https://distill.pub/2017/ctc/)
+- [Overview of 2022 SOTA in text recognition](https://dilithjay.com/blog/sota-in-scene-text-recognition-2022)
 
 ### General Approach
 1. Image input
