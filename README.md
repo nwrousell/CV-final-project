@@ -7,6 +7,13 @@
 - [Sequence Modeling with CTC](https://distill.pub/2017/ctc/)
 - [Overview of 2022 SOTA in text recognition](https://dilithjay.com/blog/sota-in-scene-text-recognition-2022)
 
+## Datasets
+### Text Detection
+- 
+### Text Recognition
+- [MJSynth](https://www.robots.ox.ac.uk/~vgg/data/text/)
+- [SynthText](https://www.robots.ox.ac.uk/~vgg/data/scenetext/)
+
 ### General Approach
 1. Image input
 2. Convert to grayscale/high contrast
