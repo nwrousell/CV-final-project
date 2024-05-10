@@ -104,11 +104,11 @@ class EAST(nn.Module):
         if self.geometry == "rbox":
             text_box = self.text_box_conv(feature_out)
             text_rotation = self.text_rotation_conv(feature_out)
-            out = torch.cat([text_box, text_rotation], dim=1)
+            geo = torch.cat([text_box, text_rotation], dim=1)
         else: # quad
-            out = self.quad_conv(feature_out)
+            geo = self.quad_conv(feature_out)
 
-        return out
+        return score, geo
 
 class ViTSTR(nn.Module):
     def __init__(self):

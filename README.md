@@ -9,7 +9,8 @@
 
 ## Datasets
 ### Text Detection
-- 
+- [ICDAR 2015](https://rrc.cvc.uab.es/?ch=4&com=downloads)
+
 ### Text Recognition
 - [MJSynth](https://www.robots.ox.ac.uk/~vgg/data/text/)
 - [SynthText](https://www.robots.ox.ac.uk/~vgg/data/scenetext/)
