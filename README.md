@@ -1,8 +1,6 @@
 # Computer Vision Final Project
 
-- [Robust Reading Challenge on Multi-lingual Scene Text Detection and Recognition](https://arxiv.org/pdf/1907.00945.pdf)
-- [OCR datasets](https://github.com/xinke-wang/OCRDatasets)
-- EAST [paper](https://arxiv.org/pdf/1704.03155.pdf) [githhub](https://github.com/argman/EAST)
+- EAST [paper](https://arxiv.org/pdf/1704.03155.pdf) [re-implementation githhub reference](https://github.com/SakuraRiven/EAST)
 - [Preprocessing images](https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html)
 - [Sequence Modeling with CTC](https://distill.pub/2017/ctc/)
 - [Overview of 2022 SOTA in text recognition](https://dilithjay.com/blog/sota-in-scene-text-recognition-2022)

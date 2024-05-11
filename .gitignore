@@ -1,6 +1,9 @@
 env
+pths
+*.out
+results
 
-src/__pycache__
+east/__pycache__
 
 # Documents
 documents/*.aux

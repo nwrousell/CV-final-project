@@ -2,18 +2,19 @@ import torch
 import torch.nn as nn
 from torchvision.models import vgg16, VGG16_Weights
 from torchvision.models._utils import IntermediateLayerGetter
+import math
 
 class EAST(nn.Module):
     def __init__(self, geometry="rbox"):
         super().__init__()
 
+        self.length = 512
 
         vgg16_pretrained = vgg16(weights=VGG16_Weights.IMAGENET1K_FEATURES)
         self.vgg = vgg16_pretrained.features
         return_layers = {'9': 'pooling-2', '16': 'pooling-3', '23': 'pooling-4', '30': 'pooling-5'}
         self.features_stem = IntermediateLayerGetter(self.vgg, return_layers=return_layers)
 
-        # self.unpool = nn.MaxUnpool2d(kernel_size=2)
         self.unpool = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False)
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
@@ -39,7 +40,7 @@ class EAST(nn.Module):
         self.score_conv = nn.Conv2d(in_channels=32,out_channels=1,kernel_size=1)
     
         self.geometry = geometry
-        if self.geometry == "rbox":
+        if self.geometry == "RBOX":
             self.text_box_conv = nn.Conv2d(in_channels=32,out_channels=4,kernel_size=1)
             self.text_rotation_conv = nn.Conv2d(in_channels=32,out_channels=1,kernel_size=1)
         else:
@@ -99,14 +100,17 @@ class EAST(nn.Module):
 
         # Output layer
         score = self.score_conv(feature_out)
+        score = self.sigmoid(score)
 
-        # add sigmoid activations?
-        if self.geometry == "rbox":
-            text_box = self.text_box_conv(feature_out)
+        if self.geometry == "RBOX":
+            text_box = self.sigmoid(self.text_box_conv(feature_out)) * self.length # values between 0 and 512 pixels
             text_rotation = self.text_rotation_conv(feature_out)
+            text_rotation = (self.sigmoid(text_rotation) - 0.5) * math.pi # values between -PI/2 and PI/2 radians
+
             geo = torch.cat([text_box, text_rotation], dim=1)
         else: # quad
-            geo = self.quad_conv(feature_out)
+            raise NotImplementedError("Using quad geometry is not implemented")
+            # geo = self.quad_conv(feature_out)
 
         return score, geo
 
