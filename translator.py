@@ -1,4 +1,4 @@
-from google.cloud import translate
+# from google.cloud import translate
 
 class Translator:
     def __init__(self):
