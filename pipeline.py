@@ -10,10 +10,10 @@ from vitstr.converter import TokenLabelConverter
 from east.test import predict
 from east.deploy import place_boxes_on_image
 from vitstr.test import infer
-from video import get_image_from_bounding_box, translate_and_show
+from video import expand_box, get_image_from_bounding_box, translate_and_show
 
 east_checkpoint_path = "east/pths/resume_w_grad_clip_model_epoch_600.pth"
-vitstr_checkpoint_path = "vitstr/pths/continue_model_epoch_17.pth"
+vitstr_checkpoint_path = "vitstr/pths/continue_model_epoch_18.pth"
 
 def load_models(device):
     east_model = EAST(geometry="RBOX")
@@ -43,8 +43,11 @@ def text_recognition(sub_images, vitstr, converter, device):
     return pred_text
 
 def pipeline(img, east, vitstr, converter, device, target_lang):
+
+    image_with_translation = img.copy()
     # run east to get boxes
     boxes = predict(east, img, device)
+    boxes = [expand_box(box, 0.15) for box in boxes]
     boxes_on_image = place_boxes_on_image(img, boxes)
 
     # cut out boxes
@@ -56,7 +59,7 @@ def pipeline(img, east, vitstr, converter, device, target_lang):
 
     # blit boxes/text back onto the img
 
-    image_with_translation = img.copy()
+    # image_with_translation = img.copy()
     for box, text in zip(boxes, text_preds):
         image_with_translation = translate_and_show(image_with_translation, (box[0][0], box[0][1]), (box[3][0], box[3][1]), (box[2][0], box[2][1]), (box[1][0], box[1][1]), None, target_lang, text)
 
