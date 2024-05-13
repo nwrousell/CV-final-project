@@ -20,6 +20,7 @@ def match_descriptors(des1, des2):
     matches = sorted(matches, key=lambda x: x.distance)
     return matches
 
+
 def compute_affine_matrix(kp1, kp2, matches):
     if len(matches) >= 3:
         src_pts = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
@@ -28,4 +29,13 @@ def compute_affine_matrix(kp1, kp2, matches):
         return affine_matrix
     else:
         return None
-    
+
+def get_affine_matrix(image_path1, image_path2):
+    img1, img2 = load_images(image_path1, image_path2)
+    kp1, des1 = find_keypoints_and_descriptors(img1)
+    kp2, des2 = find_keypoints_and_descriptors(img2)
+    matches = match_descriptors(des1, des2)
+    affine_matrix = compute_affine_matrix(kp1, kp2, matches)
+    print(affine_matrix)
+    return affine_matrix
+
