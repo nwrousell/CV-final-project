@@ -1,6 +1,7 @@
+import math
 import cv2
 import numpy as np
-from PIL import ImageFont, ImageDraw, Image
+from PIL import ImageFont, ImageDraw, Image, ImageTransform
 
 from translator import Translator 
 
@@ -23,10 +24,27 @@ vid = cv2.VideoCapture(0)
 # Get font
 arial = ImageFont.truetype("Arial.ttf",30)
 
+def get_image_from_bounding_box(frame, top_left, bottom_left, bottom_right, top_right):
+    # Open starting image and ensure RGB
+    im = Image.fromarray(frame)
+    width = int(math.dist(top_left, top_right))
+    height = int(math.dist(top_left, bottom_left))
+    print("width ", width)
+    print("height ", height)
+
+    # Define 8-tuple with x,y coordinates of top-left, bottom-left, bottom-right and top-right corners and apply
+    transform= top_left + bottom_left + bottom_right + top_right
+    print("transform: ", transform)
+    result = im.transform((width,height), ImageTransform.QuadTransform(transform))
+
+    # Save the result
+    result.save('result.png')
+    return result
+
 
 # given bounding box defined by top-left and bottom-right corners and text to be translated,
 # translates the text and prints it back to the image with the bounding box
-def translate_and_show(frame, top_left: tuple[int, int], bottom_right: tuple[int, int], source_language: str, target_language: str, text: str):
+def translate_and_show(frame, top_left, bottom_left, bottom_right, top_right, source_language: str, target_language: str, text: str):    
     # place text in bounding box
     x, y = top_left[0], top_left[1]
     w, h = bottom_right[0] - top_left[0], bottom_right[1] - top_left[1]
@@ -82,8 +100,36 @@ def translate_and_show(frame, top_left: tuple[int, int], bottom_right: tuple[int
     image = np.asarray(pil_image)
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
+
+    # rotate box
+    # im = Image.open(image).convert('RGB')
+
+    # Define 8-tuple with x,y coordinates of top-left, bottom-left, bottom-right and top-right corners and apply
+    # transform = top_left + bottom_left + bottom_right + top_right
+    width = int(math.dist(top_left, top_right))
+    height = int(math.dist(top_left, bottom_left))
+    print("width ", width)
+    print("height ", height)
+    # result = im.transform((width,height), ImageTransform.QuadTransform(transform))
+    # result.save('result.png')
+
+    angle = -45
+    size = width, height
+
+    # dst_im = Image.new("RGBA", (width, height), "blue" )
+    # im = image.convert('RGBA')
+    src_im = Image.fromarray(image)
+    im = src_im.convert('RGBA')
+    rot = im.rotate( angle, expand=1 ).resize(size)
+
+    frame_image = Image.fromarray(frame)
+    
+    frame_image.paste( rot, (50, 50), rot )
+    frame_image.save("rotated_image.png")
+
+
     # overlay translation box
-    frame[x:x+w,y:y+h,:] = image[0:w,0:h,:]
+    # frame[x:x+w,y:y+h,:] = image[0:w,0:h,:]
 
     # display bounding box
     # cv2.rectangle(frame, top_left, bottom_right, box_color, box_thickness)
@@ -96,8 +142,12 @@ while(True):
     ret, frame = vid.read() 
     
     # display text
-    translate_and_show(frame, (200, 200), (500, 500), None, "es", "Really long string to test line breaks and bounding box fitting! How cool?!! ")
+    # translate_and_show(frame, (200, 200), (500, 230), (200, 260), (500, 290), None, "es", "Really long string to test line breaks and bounding box fitting! How cool?!! ")
+    # translate_and_show(frame, (200, 200), (500, 200), (200, 300), (500, 300), None, "es", "Really long string to test line breaks and bounding box fitting! How cool?!! ")
   
+    # testing
+    get_image_from_bounding_box(frame, (31*3, 146*3), (88*3, 226*3), (252*3, 112*3), (195*3, 31*3))
+
     # Display the resulting frame 
     cv2.imshow('frame', frame) 
       

@@ -25,7 +25,7 @@ class Translator:
         return translation
         
     def translate_text(self, source_language: str, target_language: str, text: str):
-        # return "Héllø wörld ǎgain but with diaçritics ;)"
+        return "Héllø wörld ǎgain but with diaçritics ;)"
         # return "Really long string to test line breaks and bounding box fitting! How cool?!! Whataboutareallylongwordthatdefinitelydoesn'tfitinoneline?"
         
         client = translate.TranslationServiceClient()
