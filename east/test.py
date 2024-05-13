@@ -47,7 +47,7 @@ def predict(model, im, save_name=None):
     text_boxes[:, :, 1] /= ratio_h    
 
     im = transforms.functional.pil_to_tensor(im)
-    im = torch.permute(im, (1,2,0)).numpy()
+    im = torch.permute(im, (1,2,0)).numpy()[:,:,::-1]
 
     img_with_boxes = place_boxes_on_image(im, valid_boxes)
 

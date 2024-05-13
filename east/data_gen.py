@@ -62,7 +62,6 @@ def collate_fn(batch):
 def get_data_record(image_list, i, data_path, transformer):
     im_fn = image_list[i]
     im = cv.imread(im_fn)
-    # print im_fn
     h, w, _ = im.shape
     txt_fn = im_fn.replace(data_path, '')[1:]
     txt_fn = os.path.join(data_path, 'gt_' + txt_fn.split('.')[0] + '.txt')

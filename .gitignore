@@ -1,9 +1,11 @@
 env
-pths
+east/pths
+vitstr/pths
 *.out
 results
 
 east/__pycache__
+vitstr/__pycache__
 
 # Documents
 documents/*.aux

@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 input_size = 512
-batch_size = 1
+batch_size = 24
 learning_rate = 0.0001
 save_interval = 10
 num_epochs = 600
@@ -30,5 +30,4 @@ num_valid = num_samples - num_train
 num_workers = 4  # for data-loading
 grad_clip = 5.  # clip gradients at an absolute value of
 print_freq = 10  # print training/validation stats  every __ batches
-checkpoint = None  # path to checkpoint, None if none
-pths_path = "../pths"
+pths_path = "pths"
