@@ -35,11 +35,8 @@ def expand_box(box, scale):
     bottom_right = box[2]
     width = top_right[0] - top_left[0]
     height = bottom_left[1] - top_left[1]
-    print("width: ", width)
-    print("height: ", width)
     dx = width * scale
     dy = height * scale
-    print("dx, dy: ", dx, ",", dy)
     slope = (top_right[1] - top_left[1]) / (top_right[0] - top_left[0])
 
     if slope > 0:
@@ -209,34 +206,6 @@ def translate_and_show(frame, top_left, bottom_left, bottom_right, top_right, so
         img.save('result.png')
 
     return canvas
-    # tmp = transformed_image.astype(np.uint16)
-    # alpha = (tmp[:,:,0] + tmp[:,:,1] + tmp[:,:,2]) > 0
-
-    # alpha = alpha.astype(np.float32)
-
-    # alpha = np.dstack((alpha, alpha, alpha))
-
-    # transformed_image = transformed_image.astype(np.float32)
-    # canvas = frame.astype(np.float32)
-
-    # foreground = np.multiply(alpha, transformed_image)
-    # np.subtract(1.0, alpha, out=alpha)
-    # np.multiply(alpha, canvas, out=canvas)
-
-    # np.add(foreground, canvas, out=canvas)
-    # canvas = canvas.astype(np.uint8)
-
-    # if save_intermediates:
-    #     bgr_image = cv2.cvtColor(canvas, cv2.COLOR_RGB2BGR)
-    #     img = Image.fromarray(bgr_image)
-    #     img.save('final.png')
-    # return canvas
-
-    # overlay translation box
-    # frame[x:x+w,y:y+h,:] = image[0:w,0:h,:]
-
-    # display bounding box
-    # cv2.rectangle(frame, top_left, bottom_right, box_color, box_thickness)
 
 @nb.njit('(uint8[:,:,::1], uint8[:,:,::1])', parallel=True)
 def compute(img, canvas):
