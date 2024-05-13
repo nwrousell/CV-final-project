@@ -23,7 +23,7 @@ box_thickness = 2
 translator = Translator()
 
 # Get font
-roboto = ImageFont.truetype("fonts/Robot-Regular.ttf",15)
+# roboto = ImageFont.truetype("fonts/Robot-Regular.ttf",10)
 
 # expands the box by the specified amount in the long axis
 # box is a (4,2) numpy array
@@ -69,72 +69,42 @@ def get_image_from_bounding_box(frame, top_left, bottom_left, bottom_right, top_
     im = Image.fromarray(frame)
     width = int(math.dist(top_left, top_right))
     height = int(math.dist(top_left, bottom_left))
-    # print("width ", width)
-    # print("height ", height)
 
     # Define 8-tuple with x,y coordinates of top-left, bottom-left, bottom-right and top-right corners and apply
     transform= top_left + bottom_left + bottom_right + top_right
-    # print("transform: ", transform)
     result = im.transform((width,height), ImageTransform.QuadTransform(transform))
 
     # Save the result
-    result.save('result.png')
+    # result.save('result.png')
     return result
 
 # given bounding box defined by top-left and bottom-right corners and text to be translated,
 # translates the text and prints it back to the image with the bounding box
 def translate_and_show(frame, top_left, bottom_left, bottom_right, top_right, source_language: str, target_language: str, text: str):    
-    # place text in bounding box
-    # x, y = top_left[0], top_left[1]
-    # w, h = bottom_right[0] - top_left[0], bottom_right[1] - top_left[1]
-
     save_intermediates = False
 
     width = int(math.dist(top_left, top_right))
     height = int(math.dist(top_left, bottom_left))
-    # print("width ", width)
-    # print("height ", height)
-
-    margin = 0
-    line_buffer = 0
-
-    # # Blur background slightly
-    # ROI = frame[y:y+h, x:x+w]
-    # blur = cv2.GaussianBlur(ROI, (51,51), 0) 
-    # frame[y:y+h, x:x+w] = blur
 
     # Workaround for non-ASCII text to display text
     translation = translator.get_translation(source_language, target_language, text)
 
-    # Create black mask using Numpy and convert from BGR (OpenCV) to RGB (PIL)
+    # Create mask using Numpy and convert from BGR (OpenCV) to RGB (PIL)
     image = np.full((height, width, 3), (150, 150, 150), dtype=np.uint8)
     pil_image = Image.fromarray(image)
     draw = ImageDraw.Draw(pil_image)
 
-    text_size = cv2.getTextSize(translation, ascii_font, font_scale, text_thickness)
-    ((text_width, text_height), baseline) = text_size
-    # line_start = (margin, 0)
+    # portion of image width you want text width to be
+    img_fraction = 0.8
+
+    fontsize = 10
+    roboto = ImageFont.truetype("fonts/Robot-Regular.ttf", fontsize)
+    while roboto.getbbox(text)[3] < img_fraction*image.shape[0]:
+        # iterate until the text size is just larger than the criteria
+        fontsize += 1
+        roboto = ImageFont.truetype("fonts/Robot-Regular.ttf", fontsize)
+
     draw.text((0,0), translation, font=roboto, fill=(255,255,255))
-    # if text_width > width:
-    #     line_width = 0
-    #     line = ""
-    #     for word in translation.split(" "):
-    #         ((word_width, _), _) = cv2.getTextSize(word + " ", ascii_font, font_scale, text_thickness)
-    #         if word_width + line_width < width - 2 * margin:
-    #             line += word + " "
-    #             line_width += word_width
-    #         else:
-    #             line_start = (line_start[0], line_start[1] + text_height + line_buffer)
-    #             draw.text(line_start, line, font=roboto, fill=(255,255,255))
-    #             line = word + " "
-    #             line_width = word_width
-    #     # handle last word if it breaks lines
-    #     if line != "":
-    #         line_start = (line_start[0], line_start[1] + text_height + line_buffer)
-    #         draw.text(line_start, line, font=roboto, fill=(255,255,255))
-    # else:
-    #     line_start = (line_start[0], line_start[1] + text_height)
-    #     draw.text(line_start, translation, font=roboto, fill=(255,255,255))
 
     # Convert back to Numpy array and switch back from RGB to BGR
     image = np.asarray(pil_image)
