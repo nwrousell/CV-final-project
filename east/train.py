@@ -1,17 +1,17 @@
 import torch
 from torch.utils.data import DataLoader
-from networks import EAST
-# from my_data import EastDataset
 from torch.optim import Adam
 from time import time
 from torch.optim import lr_scheduler
 import os
 import argparse
 import numpy as np
+from torch.nn.utils import clip_grad_norm_
 
-from config import print_freq, geometry, batch_size, geometry_loss_weight, angle_loss_weight, num_epochs, save_interval, pths_path, learning_rate
-from data_gen import EastDataset
-from losses import EastLoss
+from .networks import EAST
+from .config import print_freq, geometry, batch_size, geometry_loss_weight, angle_loss_weight, num_epochs, save_interval, pths_path, learning_rate, grad_clip
+from .data_gen import EastDataset
+from .losses import EastLoss
 
 
 def train_EAST(model, train_loader, criterion, optimizer, epoch_num, device, scheduler):
@@ -39,7 +39,7 @@ def train_EAST(model, train_loader, criterion, optimizer, epoch_num, device, sch
         loss.backward()
 
         # Update weights
-        # torch.nn.utils.clip_grad_norm_(model.parameters(), )
+        clip_grad_norm_(model.parameters(), grad_clip)
         optimizer.step()
         scheduler.step()
 
@@ -64,6 +64,11 @@ if __name__ == "__main__":
     # create model
     east_model = EAST(geometry=geometry)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    east_model.to(device)
+
+    pytorch_total_params = sum(p.numel() for p in east_model.parameters() if p.requires_grad)
+
+    print("# trainable parameters:", pytorch_total_params)
 
     # initialize optimizer
     optimizer = Adam(east_model.parameters(), lr=learning_rate)
@@ -91,7 +96,6 @@ if __name__ == "__main__":
         east_model = torch.nn.DataParallel(east_model)
         data_parallel = True
         print("Using multiple devices")
-    east_model.to(device)
 
     start_time = time()
 
@@ -109,6 +113,3 @@ if __name__ == "__main__":
                 "optimizer_state_dict": optimizer.state_dict()
             }, os.path.join(pths_path, save_path))
             print(f"saved checkpoint at {save_path}")
-
-# Non-maxima suppression
-# eval
