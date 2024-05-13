@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from shapely.geometry import Polygon
 
-from config import training_data_path, min_text_size, geometry, min_crop_side_ratio, epsilon
+from .config import training_data_path, min_text_size, geometry, min_crop_side_ratio, epsilon
 
 
 def get_images(data_path):

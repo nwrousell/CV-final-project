@@ -7,11 +7,11 @@ from torch.optim import lr_scheduler
 import os
 import argparse
 import numpy as np
-from loss import ViTSTRLoss
-from data import RawDataset, filter_collate_fn
-from converter import TokenLabelConverter
 
-from config import print_freq, batch_size, num_epochs, save_interval, pths_path, learning_rate, loss_type, grad_clip, train_data_path, characters
+from .data import RawDataset, filter_collate_fn
+from .converter import TokenLabelConverter
+
+from .config import print_freq, batch_size, num_epochs, save_interval, pths_path, learning_rate, loss_type, grad_clip, train_data_path, characters
 
 
 def train_ViTSTR(model, train_loader, criterion, optimizer, epoch_num, device, scheduler, converter):

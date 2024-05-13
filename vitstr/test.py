@@ -1,18 +1,33 @@
 import torch
 from torch.utils.data import DataLoader
-from network import ViTSTR
 from torch.optim import Adam
 from time import time
 from torch.optim import lr_scheduler
 import os
 import argparse
 import numpy as np
-from loss import ViTSTRLoss
-from data import RawDataset, filter_collate_fn
-from converter import TokenLabelConverter
 import time
 
-from config import print_freq, batch_size, num_epochs, save_interval, pths_path, learning_rate, loss_type, grad_clip, train_data_path, characters
+from .network import ViTSTR
+from .data import RawDataset, filter_collate_fn
+from .converter import TokenLabelConverter
+
+from .config import print_freq, batch_size, num_epochs, save_interval, pths_path, learning_rate, loss_type, grad_clip, train_data_path, characters
+
+def infer(image, vitstr_model, converter, device):
+    image = torch.permute(image, (0,3,1,2)).to(device)
+
+    # Forward pass
+    pred = vitstr_model(image, converter.max_seq_length, device)[:,1:,:]
+
+    pred_indices = torch.argmax(pred, dim=-1)
+
+    lengths = [pred_indices.shape[1]] * pred_indices.shape[0]
+    pred_texts = converter.decode(pred_indices, lengths)
+
+    print(pred_texts)
+
+    return pred_texts
 
 def main():
     print("CUDA:", torch.cuda.is_available())
@@ -60,14 +75,7 @@ def main():
     vitstr_model.to(device)
 
     for i, (image, label) in enumerate(train_dataloader):
-        image = torch.permute(image, (0,3,1,2)).to(device)
-
-        # Forward pass
-        pred = vitstr_model(image, converter.max_seq_length, device)[:,1:,:]
-
-        pred_indices = torch.argmax(pred, dim=-1)
-
-        pred_text = converter.decode(pred_indices, [pred_indices.shape[1]])[0]
+        pred_text = infer(image, device)[0]
         print(f"Sample {i}: {pred_text}/{label[0]}")
         time.sleep(1)
 

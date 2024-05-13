@@ -1,15 +1,14 @@
 # From https://github.com/foamliu/EAST/blob/master/data_gen.py
 
 import os
-
 import cv2 as cv
 import numpy as np
 import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-from config import input_size, training_data_path, test_data_path, background_ratio, random_scale, geometry
-from icdar import load_annotation, get_images, check_and_validate_polys, crop_area, generate_rbox
+from .config import input_size, training_data_path, test_data_path, background_ratio, random_scale, geometry
+from .icdar import load_annotation, get_images, check_and_validate_polys, crop_area, generate_rbox
 
 # Data augmentation and normalization for training
 # Just normalization for validation

@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from transformers import AutoImageProcessor, DeiTModel
 
-from config import embedding_dim, characters
+from .config import embedding_dim, characters
 
 class ViTSTR(nn.Module):
     def __init__(self):

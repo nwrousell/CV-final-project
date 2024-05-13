@@ -1,7 +1,7 @@
 import torch
 from torch.nn import CrossEntropyLoss
 
-from icdar import restore_rectangle_rbox
+from .icdar import restore_rectangle_rbox
 
 
 def compute_dice_loss(pred_score, gt_score):

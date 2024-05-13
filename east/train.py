@@ -1,6 +1,5 @@
 import torch
 from torch.utils.data import DataLoader
-from networks import EAST
 from torch.optim import Adam
 from time import time
 from torch.optim import lr_scheduler
@@ -9,9 +8,10 @@ import argparse
 import numpy as np
 from torch.nn.utils import clip_grad_norm_
 
-from config import print_freq, geometry, batch_size, geometry_loss_weight, angle_loss_weight, num_epochs, save_interval, pths_path, learning_rate, grad_clip
-from data_gen import EastDataset
-from losses import EastLoss
+from .networks import EAST
+from .config import print_freq, geometry, batch_size, geometry_loss_weight, angle_loss_weight, num_epochs, save_interval, pths_path, learning_rate, grad_clip
+from .data_gen import EastDataset
+from .losses import EastLoss
 
 
 def train_EAST(model, train_loader, criterion, optimizer, epoch_num, device, scheduler):

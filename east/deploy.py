@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 from lanms import merge_quadrangle_n9 as la_nms
 
-from icdar import restore_rectangle
+from .icdar import restore_rectangle
 
 '''
     Given model outputs, apply Thresholding and Non-Maximum Suppression to 

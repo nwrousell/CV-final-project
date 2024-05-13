@@ -1,6 +1,6 @@
 import torch
 
-from config import characters, max_seq_length
+from .config import characters, max_seq_length
 
 # https://github.com/roatienza/deep-text-recognition-benchmark/blob/master/infer_utils.py#L38
 class TokenLabelConverter:
@@ -9,7 +9,7 @@ class TokenLabelConverter:
     def __init__(self):
         # character (str): set of the possible characters.
         # [GO] for the start token of the attention decoder. [s] for end-of-sentence token.
-        self.SPACE = '[s]'
+        self.SPACE = ' '
         self.GO = '[GO]'
         self.list_token = [self.GO, self.SPACE]
         self.character = self.list_token + list(characters)
@@ -32,6 +32,6 @@ class TokenLabelConverter:
         """ convert text-index into text-label. """
         texts = []
         for index, l in enumerate(length):
-            text = ''.join([self.character[i] for i in text_index[index, :]])
+            text = ''.join([self.character[i] for i in text_index[index, :]]).strip()
             texts.append(text)
         return texts

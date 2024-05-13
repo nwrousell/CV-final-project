@@ -8,7 +8,7 @@ import numpy as np
 import math
 import re
 
-from config import characters
+from .config import characters
 
 def filter_collate_fn(batch):
     # Filter out None values
