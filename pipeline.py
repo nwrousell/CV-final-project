@@ -59,9 +59,8 @@ def pipeline(img, east, vitstr, converter, device, target_lang):
 
     # blit boxes/text back onto the img
 
-    # image_with_translation = img.copy()
-    for box, text in zip(boxes, text_preds):
-        image_with_translation = translate_and_show(image_with_translation, (box[0][0], box[0][1]), (box[3][0], box[3][1]), (box[2][0], box[2][1]), (box[1][0], box[1][1]), None, target_lang, text)
+    # get translation and insert back onto image
+    image_with_translation = translate_and_show(image_with_translation, boxes, None, target_lang, text_preds)
 
     return boxes, sub_images, text_preds, boxes_on_image, image_with_translation
 
@@ -92,7 +91,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    target_lang = ""
+    target_lang = "fr"
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     east, vitstr = load_models(device)
