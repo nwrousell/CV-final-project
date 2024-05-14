@@ -77,9 +77,9 @@ def get_image_from_bounding_box(frame, top_left, bottom_left, bottom_right, top_
 # given bounding box defined by top-left and bottom-right corners and text to be translated,
 # translates the text and prints it back to the image with the bounding box
 # def translate_and_show(frame, top_left, bottom_left, bottom_right, top_right, source_language: str, target_language: str, text: str):    
-def translate_and_show(frame, boxes, source_language: str, target_language: str, texts: List[str]):
+def render_with_text(frame, boxes, translations: List[str]):
     canvas = frame.astype(np.uint8)
-    translations = translator.get_translation(source_language, target_language, texts)
+    save_intermediates = False
     for i in range(len(boxes)):
         box = boxes[i]
         top_left = box[0]
@@ -87,7 +87,6 @@ def translate_and_show(frame, boxes, source_language: str, target_language: str,
         # bottom_right = box[2]
         bottom_left = box[3]
 
-        save_intermediates = False
 
         width = int(math.dist(top_left, top_right))
         height = int(math.dist(top_left, bottom_left))
@@ -104,11 +103,11 @@ def translate_and_show(frame, boxes, source_language: str, target_language: str,
         img_fraction = 0.8
 
         fontsize = 10
-        roboto = ImageFont.truetype("fonts/Robot-Regular.ttf", fontsize)
+        roboto = ImageFont.truetype("data/Robot-Regular.ttf", fontsize)
         while roboto.getbbox(translation)[3] < img_fraction*image.shape[0]:
             # iterate until the text size is just larger than the criteria
             fontsize += 1
-            roboto = ImageFont.truetype("fonts/Robot-Regular.ttf", fontsize)
+            roboto = ImageFont.truetype("data/Robot-Regular.ttf", fontsize)
 
         draw.text((0,0), translation, font=roboto, fill=(255,255,255))
 

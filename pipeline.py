@@ -12,12 +12,12 @@ from vitstr.converter import TokenLabelConverter
 from east.test import predict
 from east.deploy import place_boxes_on_image
 from vitstr.test import infer
-from video import expand_box, get_image_from_bounding_box, render_text_box
+from video import expand_box, get_image_from_bounding_box, render_with_text
 from affine_matrix import find_keypoints_and_descriptors, match_descriptors, compute_affine_matrix
 from translator import Translator
 
 east_checkpoint_path = "east/pths/resume_w_grad_clip_model_epoch_600.pth"
-vitstr_checkpoint_path = "vitstr/pths/continue_model_epoch_4.pth"
+vitstr_checkpoint_path = "vitstr/pths/continue_model_epoch_2.pth"
 
 def load_models(device):
     east_model = EAST(geometry="RBOX")
@@ -46,14 +46,8 @@ def text_recognition(sub_images, vitstr, converter, device):
 
     return pred_text
 
-def render_boxes_on_image(base_img, boxes, translations):
-    image_with_translation = base_img.copy()
-    for box, text in zip(boxes, translations):
-        image_with_translation = render_text_box(image_with_translation, (box[0][0], box[0][1]), (box[3][0], box[3][1]), (box[2][0], box[2][1]), (box[1][0], box[1][1]), text)
-    
-    return image_with_translation
 
-def pipeline(img, east, vitstr, converter, device, target_lang, translator):
+def pipeline(img, east, vitstr, converter, device, translator):
 
     image_with_translation = img.copy()
     # run east to get boxes
@@ -72,25 +66,26 @@ def pipeline(img, east, vitstr, converter, device, target_lang, translator):
     text_preds = text_recognition(sub_images, vitstr, converter, device)
 
     # call to translate API
-    translations = translator.translate_text(text_preds, target_lang)
-    # translations = [t.text for t in translator.translate(text_preds, dest=target_lang)]
+    # corrected_preds = [translator.get_spellchecked_word(word) for word in text_preds]
+    # print(corrected_preds)
+    translations = translator.translate_text(text_preds)
 
     # use ORB to generate feature descriptors
     keypoints, descriptors = find_keypoints_and_descriptors(img)
 
     return boxes, text_preds, translations, keypoints, descriptors
 
-def process_file(im_path, east, vitstr, converter, device, target_lang, translator):
+def process_file(im_path, east, vitstr, converter, device, translator):
     img = cv2.imread(im_path)
     print("read img", img.shape)
 
-    boxes, text_preds, translations, _, _ = pipeline(img, east, vitstr, converter, device, target_lang, translator)
+    boxes, text_preds, translations, _, _ = pipeline(img, east, vitstr, converter, device, translator)
 
     save_path = rf"results/{im_path.split('/')[-1]}"
 
     # cv2.imwrite(rf"results/bounding_{im_path.split('/')[-1]}", img_with_boxes)
 
-    rendered_img = render_boxes_on_image(img, boxes, translations)
+    rendered_img = render_with_text(img, boxes, translations)
 
     success = cv2.imwrite(save_path, rendered_img)
     if success:
@@ -99,7 +94,7 @@ def process_file(im_path, east, vitstr, converter, device, target_lang, translat
         print(f"failed to write {save_path}")
 
 
-def live_demo(east, vitstr, converter, device, target_lang, translator):
+def live_demo(east, vitstr, converter, device, translator):
     vid = cv2.VideoCapture(0) 
   
     FPS = 24
@@ -124,7 +119,7 @@ def live_demo(east, vitstr, converter, device, target_lang, translator):
             
             print("[slow] computing slow forward pass")
             
-            b, pred, trans, kps, desc = pipeline(current_frame, east, vitstr, converter, device, target_lang, translator)
+            b, pred, trans, kps, desc = pipeline(current_frame, east, vitstr, converter, device, translator)
             
             with shared_data['mtx']:
                 shared_data["boxes"] = b
@@ -137,7 +132,6 @@ def live_demo(east, vitstr, converter, device, target_lang, translator):
             # time.sleep(5)
 
     def fast_update_thread_func():
-        stale_polys_for = 0
         transformed_boxes = None
         
         while True: 
@@ -158,16 +152,13 @@ def live_demo(east, vitstr, converter, device, target_lang, translator):
                 current_keypoints, current_descriptors = find_keypoints_and_descriptors(current_frame)
                 matches = match_descriptors(feature_descriptors, current_descriptors)
             
-                if stale_polys_for >= 0:
-                    if len(matches) >= 5 and boxes is not None:
-                        stale_polys_for = 0
-                        M = compute_affine_matrix(keypoints, current_keypoints, matches[:10])
-                        points = np.array(boxes).reshape(-1, 2).T
-                        transformed_points = (np.matmul(M[:2,:2], points) + M[:, 2, np.newaxis]).T
-                        transformed_boxes = [box for box in transformed_points.reshape(len(boxes), 4, 2)]
-                        print("[fast] computed affine matrix")
-                else:
-                    stale_polys_for += 1
+                if len(matches) >= 3 and boxes is not None:
+                    M = compute_affine_matrix(keypoints, current_keypoints, matches)
+                    points = np.array(boxes).reshape(-1, 2).T
+                    transformed_points = (np.matmul(M[:2,:2], points) + M[:, 2, np.newaxis]).T
+                    transformed_boxes = [box for box in transformed_points.reshape(len(boxes), 4, 2)]
+                    print("[fast] computed affine matrix")
+             
             
         
         
@@ -176,7 +167,7 @@ def live_demo(east, vitstr, converter, device, target_lang, translator):
                     transformed_boxes = boxes.copy()
 
                 try:
-                    rendered_img = render_boxes_on_image(current_frame, transformed_boxes, translations)
+                    rendered_img = render_with_text(current_frame, transformed_boxes, translations)
                     # Display the resulting frame 
                     cv2.imshow('frame', rendered_img) 
                     print("[fast] rendered frame with text!")
@@ -222,13 +213,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    source_lang = "en"
     target_lang = "es"
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     east, vitstr = load_models(device)
     
     converter = TokenLabelConverter()
-    translator = Translator()
+    translator = Translator(source_lang="en", target_lang=target_lang)
 
     if args.path is not None:
         # parse path flag to get file(s)
@@ -238,6 +230,6 @@ if __name__ == "__main__":
             im_paths = [os.path.join(args.path, p) for p in os.listdir(args.path)]
         print(f"processing {im_paths}")
         for p in im_paths:
-            process_file(p, east, vitstr, converter, device, target_lang, translator)
+            process_file(p, east, vitstr, converter, device, translator)
     else:
-        live_demo(east, vitstr, converter, device, target_lang, translator)
+        live_demo(east, vitstr, converter, device, translator)
