@@ -23,9 +23,6 @@ box_thickness = 2
 # handles translations
 translator = Translator()
 
-# Get font
-# roboto = ImageFont.truetype("fonts/Robot-Regular.ttf",10)
-
 # expands the box by the specified amount in the long axis
 # box is a (4,2) numpy array
 # scale is a float, e.g. 0.1 = 10% larger
@@ -86,11 +83,10 @@ def translate_and_show(frame, boxes, source_language: str, target_language: str,
     canvas = frame.astype(np.uint8)
     translations = translator.get_translation(source_language, target_language, texts)
     for i in range(len(boxes)):
-        text = texts[i]
         box = boxes[i]
         top_left = box[0]
         top_right = box[1]
-        bottom_right = box[2]
+        # bottom_right = box[2]
         bottom_left = box[3]
 
         save_intermediates = False
@@ -99,7 +95,6 @@ def translate_and_show(frame, boxes, source_language: str, target_language: str,
         height = int(math.dist(top_left, bottom_left))
 
         # Workaround for non-ASCII text to display text
-        # translations = translator.get_translation(source_language, target_language, [text])
         translation = translations[i]
 
         # Create mask using Numpy and convert from BGR (OpenCV) to RGB (PIL)
@@ -153,7 +148,7 @@ def translate_and_show(frame, boxes, source_language: str, target_language: str,
             rot_img = Image.fromarray(rotated_image)
             rot_img.save('rotated_text.png')
 
-        # add translation
+        # add translation to correctly position text on image
         canvas_center = (canvas_width / 2, canvas_height / 2)
         avg_x = int((top_left[0] + top_right[0] ) / 2)
         avg_y = int((top_left[1] + bottom_left[1] ) / 2)
@@ -179,6 +174,7 @@ def translate_and_show(frame, boxes, source_language: str, target_language: str,
 
     return canvas
 
+# speed up computation using numba
 @nb.njit('(uint8[:,:,::1], uint8[:,:,::1])', parallel=True)
 def compute(img, canvas):
     for i in nb.prange(img.shape[0]):
@@ -208,29 +204,7 @@ if __name__ == "__main__":
         ret, frame = vid.read() 
         
         # display text
-        # translate_and_show(frame, (200, 200), (500, 230), (200, 260), (500, 290), None, "es", "Really long string to test line breaks and bounding box fitting! How cool?!! ")
         frame = translate_and_show(frame, (31*2, 146*2), (88*2, 226*2), (252*2, 112*2), (195*2, 31*2), None, "es", ["Really long string to test line breaks and bounding box fitting! How cool?!! "])
-
-
-        # frame = translate_and_show(frame, (31*2 + 300, 146*2 + 300), (88*2 + 300, 226*2 + 300), (252*2 + 300, 112*2 + 300), (195*2 + 300, 31*2 + 300), None, "es", "Really long string to test line breaks and bounding box fitting! How cool?!! ")
-        
-        # failed attempt to test rotation
-        # angle = math.radians(0)
-
-        # px = 1000
-        # py = 1000
-        # ox = frame.shape[1] / 2
-        # oy = frame.shape[0] / 2
-
-        # qx = ox + math.cos(angle) * (px - ox) - math.sin(angle) * (py - oy)
-        # qy = oy + math.sin(angle) * (px - ox) + math.cos(angle) * (py - oy)
-        # print("angle: ", angle)
-        # print("qx, qy: (", qx, ",", qy, ")")
-
-        # frame = translate_and_show(frame, (px, py), (px, qy), (qx, qy), (qx, py), None, "es", "Really long string to test line breaks and bounding box fitting! How cool?!! ")
-    
-        # testing
-        # get_image_from_bounding_box(frame, (31*3, 146*3), (88*3, 226*3), (252*3, 112*3), (195*3, 31*3))
 
         # Display the resulting frame 
         cv2.imshow('frame', frame) 
