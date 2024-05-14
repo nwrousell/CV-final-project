@@ -10,10 +10,14 @@ from vitstr.converter import TokenLabelConverter
 from east.test import predict
 from east.deploy import place_boxes_on_image
 from vitstr.test import infer
-from video import expand_box, get_image_from_bounding_box, translate_and_show
+from video import expand_box, get_image_from_bounding_box, render_text_box
+from affine_matrix import find_keypoints_and_descriptors
+from translator import Translator
 
 east_checkpoint_path = "east/pths/resume_w_grad_clip_model_epoch_600.pth"
 vitstr_checkpoint_path = "vitstr/pths/continue_model_epoch_18.pth"
+
+# pip install numba natsort opencv-python shapely argparse transformers lanms-neo
 
 def load_models(device):
     east_model = EAST(geometry="RBOX")
@@ -42,13 +46,23 @@ def text_recognition(sub_images, vitstr, converter, device):
 
     return pred_text
 
-def pipeline(img, east, vitstr, converter, device, target_lang):
+def render_boxes_on_image(base_img, boxes, translations):
+    image_with_translation = base_img.copy()
+    for box, text in zip(boxes, translations):
+        image_with_translation = render_text_box(image_with_translation, (box[0][0], box[0][1]), (box[3][0], box[3][1]), (box[2][0], box[2][1]), (box[1][0], box[1][1]), text)
+    
+    return image_with_translation
+
+def pipeline(img, east, vitstr, converter, device, target_lang, translator):
 
     image_with_translation = img.copy()
     # run east to get boxes
     boxes = predict(east, img, device)
+    if boxes is None: # no text detected
+        return None, None, None, None, None
+        
     boxes = [expand_box(box, 0.15) for box in boxes]
-    boxes_on_image = place_boxes_on_image(img, boxes)
+    # boxes_on_image = place_boxes_on_image(img, boxes)
 
     # cut out boxes
     # img_rgb = img[:,:,::-1] # BGR -> RGB
@@ -57,33 +71,66 @@ def pipeline(img, east, vitstr, converter, device, target_lang):
     # run vitstr to get text
     text_preds = text_recognition(sub_images, vitstr, converter, device)
 
-    # blit boxes/text back onto the img
+    # call to translate API
+    translations = translator.translate_text(text_preds, target_lang)
+    # translations = [t.text for t in translator.translate(text_preds, dest=target_lang)]
 
-    # image_with_translation = img.copy()
-    for box, text in zip(boxes, text_preds):
-        image_with_translation = translate_and_show(image_with_translation, (box[0][0], box[0][1]), (box[3][0], box[3][1]), (box[2][0], box[2][1]), (box[1][0], box[1][1]), None, target_lang, text)
+    # use ORB to generate feature descriptors
+    keypoints, descriptors = find_keypoints_and_descriptors(img)
 
-    return boxes, sub_images, text_preds, boxes_on_image, image_with_translation
+    return boxes, text_preds, translations, keypoints, descriptors
 
-def process_file(im_path, east, vitstr, converter, device, target_lang):
+def process_file(im_path, east, vitstr, converter, device, target_lang, translator):
     img = cv2.imread(im_path)
     print("read img", img.shape)
 
-    boxes, sub_images, text_preds, img_with_boxes, image_with_translation = pipeline(img, east, vitstr, converter, device, target_lang)
+    boxes, text_preds, translations, _, _ = pipeline(img, east, vitstr, converter, device, target_lang, translator)
 
     save_path = rf"results/{im_path.split('/')[-1]}"
 
-    cv2.imwrite(rf"results/bounding_{im_path.split('/')[-1]}", img_with_boxes)
+    # cv2.imwrite(rf"results/bounding_{im_path.split('/')[-1]}", img_with_boxes)
 
-    success = cv2.imwrite(save_path, image_with_translation)
+    rendered_img = render_boxes_on_image(img, boxes, translations)
+
+    success = cv2.imwrite(save_path, rendered_img)
     if success:
         print(f"processed file {im_path} and wrote result to {save_path}\n\tDetected {len(text_preds)} word(s): {', '.join(text_preds)}")
     else:
         print(f"failed to write {save_path}")
 
 
-def live_demo(east, vitstr, converter, device):
-    pass
+def live_demo(east, vitstr, converter, device, target_lang, translator):
+    vid = cv2.VideoCapture(0) 
+  
+    # Slow update data
+    boxes = None
+    text_preds = None
+    translations = None
+    keypoints = None
+    feature_descriptors = None
+  
+    while True: 
+        
+        # Read a video frame
+        ret, frame = vid.read() 
+        
+        boxes, text_preds, translations, keypoints, descriptors = pipeline(frame, east, vitstr, converter, device, target_lang, translator)
+        if boxes is not None:
+            rendered_img = render_boxes_on_image(frame, boxes, translations)
+            
+            # Display the resulting frame 
+            cv2.imshow('frame', rendered_img) 
+        else:
+            cv2.imshow('frame', frame)
+        
+        # quit when q is pressed
+        if cv2.waitKey(1) == ord('q'): 
+            break
+        
+    # After the loop release the cap object 
+    vid.release() 
+    # Destroy all the windows 
+    cv2.destroyAllWindows() 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='')
@@ -92,11 +139,13 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    target_lang = ""
+    target_lang = "es"
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     east, vitstr = load_models(device)
+    
     converter = TokenLabelConverter()
+    translator = Translator()
 
     if args.path is not None:
         # parse path flag to get file(s)
@@ -106,6 +155,6 @@ if __name__ == "__main__":
             im_paths = [os.path.join(args.path, p) for p in os.listdir(args.path)]
         print(f"processing {im_paths}")
         for p in im_paths:
-            process_file(p, east, vitstr, converter, device, target_lang)
+            process_file(p, east, vitstr, converter, device, target_lang, translator)
     else:
-        live_demo(east, vitstr, converter, device)
+        live_demo(east, vitstr, converter, device, target_lang, translator)

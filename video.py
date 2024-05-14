@@ -6,8 +6,6 @@ import numba as nb
 import os
 from pathlib import Path
 
-from translator import Translator
-
 
 # define display text parameters
 ascii_font = cv2.FONT_HERSHEY_SIMPLEX
@@ -18,9 +16,6 @@ text_thickness = 0
 # define bounding box parameters
 box_color = (0, 0, 0)
 box_thickness = 2
-
-# handles translations
-translator = Translator()
 
 # Get font
 # roboto = ImageFont.truetype("fonts/Robot-Regular.ttf",10)
@@ -80,14 +75,14 @@ def get_image_from_bounding_box(frame, top_left, bottom_left, bottom_right, top_
 
 # given bounding box defined by top-left and bottom-right corners and text to be translated,
 # translates the text and prints it back to the image with the bounding box
-def translate_and_show(frame, top_left, bottom_left, bottom_right, top_right, source_language: str, target_language: str, text: str):    
+def render_text_box(frame, top_left, bottom_left, bottom_right, top_right, text: str):    
     save_intermediates = False
 
     width = int(math.dist(top_left, top_right))
     height = int(math.dist(top_left, bottom_left))
 
     # Workaround for non-ASCII text to display text
-    translation = translator.get_translation(source_language, target_language, text)
+    # translation = translator.get_translation(source_language, target_language, text)
 
     # Create mask using Numpy and convert from BGR (OpenCV) to RGB (PIL)
     image = np.full((height, width, 3), (150, 150, 150), dtype=np.uint8)
@@ -104,7 +99,7 @@ def translate_and_show(frame, top_left, bottom_left, bottom_right, top_right, so
         fontsize += 1
         roboto = ImageFont.truetype("fonts/Robot-Regular.ttf", fontsize)
 
-    draw.text((0,0), translation, font=roboto, fill=(255,255,255))
+    draw.text((0,0), text, font=roboto, fill=(255,255,255))
 
     # Convert back to Numpy array and switch back from RGB to BGR
     image = np.asarray(pil_image)
@@ -195,53 +190,3 @@ def compute(img, canvas):
             canvas[i, j, 0] = np.uint8(cr)
             canvas[i, j, 1] = np.uint8(cg)
             canvas[i, j, 2] = np.uint8(cb)
-
-if __name__ == "__main__":
-    # define a video capture object 
-    vid = cv2.VideoCapture(0)
-    while(True): 
-        
-        # Capture the video frame 
-        # by frame 
-        ret, frame = vid.read() 
-        
-        # display text
-        # translate_and_show(frame, (200, 200), (500, 230), (200, 260), (500, 290), None, "es", "Really long string to test line breaks and bounding box fitting! How cool?!! ")
-        frame = translate_and_show(frame, (31*2, 146*2), (88*2, 226*2), (252*2, 112*2), (195*2, 31*2), None, "es", "Really long string to test line breaks and bounding box fitting! How cool?!! ")
-
-
-        # frame = translate_and_show(frame, (31*2 + 300, 146*2 + 300), (88*2 + 300, 226*2 + 300), (252*2 + 300, 112*2 + 300), (195*2 + 300, 31*2 + 300), None, "es", "Really long string to test line breaks and bounding box fitting! How cool?!! ")
-        
-        # failed attempt to test rotation
-        # angle = math.radians(0)
-
-        # px = 1000
-        # py = 1000
-        # ox = frame.shape[1] / 2
-        # oy = frame.shape[0] / 2
-
-        # qx = ox + math.cos(angle) * (px - ox) - math.sin(angle) * (py - oy)
-        # qy = oy + math.sin(angle) * (px - ox) + math.cos(angle) * (py - oy)
-        # print("angle: ", angle)
-        # print("qx, qy: (", qx, ",", qy, ")")
-
-        # frame = translate_and_show(frame, (px, py), (px, qy), (qx, qy), (qx, py), None, "es", "Really long string to test line breaks and bounding box fitting! How cool?!! ")
-    
-        # testing
-        # get_image_from_bounding_box(frame, (31*3, 146*3), (88*3, 226*3), (252*3, 112*3), (195*3, 31*3))
-
-        # Display the resulting frame 
-        cv2.imshow('frame', frame) 
-        
-        # press 'q' to quit
-        if cv2.waitKey(1) & 0xFF == ord('q'): 
-            break
-
-        # 'p' to print currently stored translations
-        if cv2.waitKey(1) & 0xFF == ord('p'): 
-            print(translator.translations)
-    
-    # After the loop release the cap object 
-    vid.release() 
-    # Destroy all the windows 
-    cv2.destroyAllWindows() 

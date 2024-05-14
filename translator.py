@@ -15,8 +15,8 @@ class Translator:
                 return result
         
         # no existing translation, so translate and insert into dictionary
-        print("Translating...")
-        translation = self.translate_text(source_language, target_language, text)
+        # print("Translating...")
+        translation = self.translate_text(text, target_language)
         if self.translations.get(text) == None:
             self.translations[text] = {target_language: translation}
             print(self.translations)
@@ -24,7 +24,7 @@ class Translator:
             self.translations[text][target_language] = translation
         return translation
         
-    def translate_text(self, source_language: str, target_language: str, text: str):
+    def translate_text(self, text: str, target_language: str):
         return text
         # return "Héllø wörld ǎgain but with diaçritics ;)"
         # return "Really long string to test line breaks and bounding box fitting! How cool?!! Whataboutareallylongwordthatdefinitelydoesn'tfitinoneline?"
