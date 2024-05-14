@@ -1,4 +1,4 @@
-# from google.cloud import translate
+from google.cloud import translate
 # from spellchecker import SpellChecker
 from typing import List
 from spellwise import Levenshtein
@@ -16,6 +16,8 @@ class Translator:
         # self.spellchecker = SpellChecker(language=self.source_lang, distance=2)
         self.levenshtein = Levenshtein()
         self.levenshtein.add_from_path("data/american_english.txt")
+        
+        # self.client = translate.TranslationServiceClient()
     
     def get_translation(self, texts: List[str]):
         translations = []
@@ -62,11 +64,6 @@ class Translator:
         
     def translate_text(self, texts: List[str]):
         return texts
-        # return "Héllø wörld ǎgain but with diaçritics ;)"
-        # return "Really long string to test line breaks and bounding box fitting! How cool?!! Whataboutareallylongwordthatdefinitelydoesn'tfitinoneline?"
-        
-        client = translate.TranslationServiceClient()
-
         project_id = "a-fine-matrix"
         location = "global"
 
@@ -74,12 +71,12 @@ class Translator:
 
         # Detail on supported types can be found here:
         # https://cloud.google.com/translate/docs/supported-formats
-        response = client.translate_text(
+        response = self.client.translate_text(
                 parent = parent,
                 contents = texts,
                 mime_type = "text/plain",  # mime types: text/plain, text/html
-                source_language_code = source_language,
-                target_language_code = target_language,
+                source_language_code = self.source_lang,
+                target_language_code = self.target_lang,
         )
 
         # Display the translation for each input text provided
