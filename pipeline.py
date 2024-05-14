@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 import argparse
 import os
+from threading import Thread, Lock
+import time
 
 from east.networks import EAST
 from vitstr.network import ViTSTR
@@ -11,13 +13,11 @@ from east.test import predict
 from east.deploy import place_boxes_on_image
 from vitstr.test import infer
 from video import expand_box, get_image_from_bounding_box, render_text_box
-from affine_matrix import find_keypoints_and_descriptors
+from affine_matrix import find_keypoints_and_descriptors, match_descriptors, compute_affine_matrix
 from translator import Translator
 
 east_checkpoint_path = "east/pths/resume_w_grad_clip_model_epoch_600.pth"
-vitstr_checkpoint_path = "vitstr/pths/continue_model_epoch_18.pth"
-
-# pip install numba natsort opencv-python shapely argparse transformers lanms-neo
+vitstr_checkpoint_path = "vitstr/pths/continue_model_epoch_4.pth"
 
 def load_models(device):
     east_model = EAST(geometry="RBOX")
@@ -61,7 +61,7 @@ def pipeline(img, east, vitstr, converter, device, target_lang, translator):
     if boxes is None: # no text detected
         return None, None, None, None, None
         
-    boxes = [expand_box(box, 0.15) for box in boxes]
+    # boxes = [expand_box(box, 0.05) for box in boxes]
     # boxes_on_image = place_boxes_on_image(img, boxes)
 
     # cut out boxes
@@ -102,35 +102,118 @@ def process_file(im_path, east, vitstr, converter, device, target_lang, translat
 def live_demo(east, vitstr, converter, device, target_lang, translator):
     vid = cv2.VideoCapture(0) 
   
-    # Slow update data
-    boxes = None
-    text_preds = None
-    translations = None
-    keypoints = None
-    feature_descriptors = None
+    FPS = 24
   
-    while True: 
-        
-        # Read a video frame
-        ret, frame = vid.read() 
-        
-        boxes, text_preds, translations, keypoints, descriptors = pipeline(frame, east, vitstr, converter, device, target_lang, translator)
-        if boxes is not None:
-            rendered_img = render_boxes_on_image(frame, boxes, translations)
+    shared_data = {
+        "boxes": None,
+        "text_preds": None,
+        "translations": None,
+        "keypoints": None,
+        "feature_descriptors": None,
+        "current_frame": None,
+        "mtx": Lock()
+    }
+  
+    def slow_update_thread_func():
+        while True:
+            with shared_data["mtx"]:
+                current_frame = shared_data["current_frame"]
             
-            # Display the resulting frame 
-            cv2.imshow('frame', rendered_img) 
-        else:
-            cv2.imshow('frame', frame)
+            if current_frame is None:
+                continue
+            
+            print("[slow] computing slow forward pass")
+            
+            b, pred, trans, kps, desc = pipeline(current_frame, east, vitstr, converter, device, target_lang, translator)
+            
+            with shared_data['mtx']:
+                shared_data["boxes"] = b
+                shared_data["text_preds"] = pred
+                shared_data["translations"] = trans
+                shared_data["keypoints"] = kps
+                shared_data["feature_descriptors"] = desc
+            
+            # force thread to yield
+            # time.sleep(5)
+
+    def fast_update_thread_func():
+        stale_polys_for = 0
+        transformed_boxes = None
         
-        # quit when q is pressed
-        if cv2.waitKey(1) == ord('q'): 
-            break
+        while True: 
+            # Read a video frame
+            ret, current_frame = vid.read() 
+            
+            print("[fast] read current frame")
+            
+            with shared_data["mtx"]:
+                shared_data["current_frame"] = current_frame
+                boxes = shared_data["boxes"]
+                translations = shared_data["translations"]
+                keypoints = shared_data["keypoints"]
+                feature_descriptors = shared_data["feature_descriptors"]
+                
+            # Fast update
+            if feature_descriptors is not None:
+                current_keypoints, current_descriptors = find_keypoints_and_descriptors(current_frame)
+                matches = match_descriptors(feature_descriptors, current_descriptors)
+            
+                if stale_polys_for >= 0:
+                    if len(matches) >= 5 and boxes is not None:
+                        stale_polys_for = 0
+                        M = compute_affine_matrix(keypoints, current_keypoints, matches[:10])
+                        points = np.array(boxes).reshape(-1, 2).T
+                        transformed_points = (np.matmul(M[:2,:2], points) + M[:, 2, np.newaxis]).T
+                        transformed_boxes = [box for box in transformed_points.reshape(len(boxes), 4, 2)]
+                        print("[fast] computed affine matrix")
+                else:
+                    stale_polys_for += 1
+            
         
-    # After the loop release the cap object 
-    vid.release() 
-    # Destroy all the windows 
-    cv2.destroyAllWindows() 
+        
+            if boxes is not None:
+                if transformed_boxes is None:
+                    transformed_boxes = boxes.copy()
+
+                try:
+                    rendered_img = render_boxes_on_image(current_frame, transformed_boxes, translations)
+                    # Display the resulting frame 
+                    cv2.imshow('frame', rendered_img) 
+                    print("[fast] rendered frame with text!")
+                except:
+                    cv2.imshow('frame', current_frame)
+                    print("[fast] rendered frame with no text")
+            else:
+                cv2.imshow('frame', current_frame)
+                print("[fast] rendered frame with no text")
+            
+            # quit when q is pressed
+            if cv2.waitKey(1) == ord('q'): 
+                break
+                
+            time.sleep(1 / FPS)
+            
+        # After the loop release the cap object 
+        vid.release() 
+        # Destroy all the windows 
+        cv2.destroyAllWindows() 
+    
+    # Create two threads
+    thread1 = Thread(target=slow_update_thread_func)
+    thread2 = Thread(target=fast_update_thread_func)
+
+    # Start the threads
+    thread2.start() # start this one first cause it needs to grab the first image
+    thread1.start()
+
+    # Wait for the threads to finish (which they won't in this case)
+    thread1.join()
+    thread2.join()
+    
+    
+# cd OneDrive/Documents/Coding/cs1430/CV-final-project
+# conda activate cv-project
+# python pipeline.py
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='')
