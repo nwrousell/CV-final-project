@@ -17,7 +17,7 @@ from affine_matrix import find_keypoints_and_descriptors, match_descriptors, com
 from translator import Translator
 
 east_checkpoint_path = "east/pths/resume_w_grad_clip_model_epoch_600.pth"
-vitstr_checkpoint_path = "vitstr/pths/continue_model_epoch_2.pth"
+vitstr_checkpoint_path = "vitstr/pths/data_aug_model_epoch_4.pth"
 
 def load_models(device):
     east_model = EAST(geometry="RBOX")
@@ -55,7 +55,7 @@ def pipeline(img, east, vitstr, converter, device, translator):
     if boxes is None: # no text detected
         return None, None, None, None, None
         
-    # boxes = [expand_box(box, 0.05) for box in boxes]
+    boxes = [expand_box(box, 0.1) for box in boxes]
     # boxes_on_image = place_boxes_on_image(img, boxes)
 
     # cut out boxes
@@ -75,15 +75,17 @@ def pipeline(img, east, vitstr, converter, device, translator):
 
     return boxes, text_preds, translations, keypoints, descriptors
 
-def process_file(im_path, east, vitstr, converter, device, translator):
+def process_file(im_path, east, vitstr, converter, device, translator, i):
     img = cv2.imread(im_path)
     print("read img", img.shape)
 
     boxes, text_preds, translations, _, _ = pipeline(img, east, vitstr, converter, device, translator)
 
-    save_path = rf"results/{im_path.split('/')[-1]}"
+    save_path = rf"results/save{i}.jpg"
 
-    # cv2.imwrite(rf"results/bounding_{im_path.split('/')[-1]}", img_with_boxes)
+    boxes_on_image = place_boxes_on_image(img, boxes)
+
+    # cv2.imwrite(save_path, boxes_on_image)
 
     rendered_img = render_with_text(img, boxes, translations)
 
@@ -94,7 +96,7 @@ def process_file(im_path, east, vitstr, converter, device, translator):
         print(f"failed to write {save_path}")
 
 
-def live_demo(east, vitstr, converter, device, translator):
+def live_demo(east, vitstr, converter, device, translator, just_boxes=False):
     vid = cv2.VideoCapture(0) 
   
     FPS = 24
@@ -167,7 +169,10 @@ def live_demo(east, vitstr, converter, device, translator):
                     transformed_boxes = boxes.copy()
 
                 try:
-                    rendered_img = render_with_text(current_frame, transformed_boxes, translations)
+                    if not just_boxes:
+                        rendered_img = render_with_text(current_frame, transformed_boxes, translations)
+                    else:
+                        rendered_img = place_boxes_on_image(current_frame, transformed_boxes)
                     # Display the resulting frame 
                     cv2.imshow('frame', rendered_img) 
                     print("[fast] rendered frame with text!")
@@ -210,6 +215,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--path',
                         help='path to file(s) to run the pipeline on. Results are written to the results directory. If passed a folder --> will process each.')
+    parser.add_argument('--detection', default=False, action='store_true')
 
     args = parser.parse_args()
 
@@ -229,7 +235,9 @@ if __name__ == "__main__":
         else:
             im_paths = [os.path.join(args.path, p) for p in os.listdir(args.path)]
         print(f"processing {im_paths}")
+        i = 0
         for p in im_paths:
-            process_file(p, east, vitstr, converter, device, translator)
+            process_file(p, east, vitstr, converter, device, translator, i)
+            i += 1
     else:
-        live_demo(east, vitstr, converter, device, translator)
+        live_demo(east, vitstr, converter, device, translator, args.detection)
